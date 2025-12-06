@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="Real-time GPS telemetry with compass and braking alerts">
+    <title>Velocitats</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- Permission Overlay -->
+    <div id="permission-overlay" class="overlay">
+        <div class="overlay-content">
+            <div class="overlay-icon">📍</div>
+            <h1>Velocitats</h1>
+            <p>Real-time GPS telemetry & safety alerts</p>
+            <button id="start-btn" class="btn-primary">
+                <span>Enable Sensors</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            </button>
+            <button id="simulate-btn" class="btn-secondary">
+                <span>🎮 Simulate Movement</span>
+            </button>
+            <p class="overlay-hint">Use simulation to test without real sensors</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <main id="dashboard" class="dashboard hidden">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="logo">Velocitats</h1>
+            <div class="status-indicators">
+                <span id="gps-status" class="status-dot" title="GPS"></span>
+                <span id="motion-status" class="status-dot" title="Motion"></span>
+                <span id="wakelock-status" class="status-dot" title="Wake Lock"></span>
+            </div>
+        </header>
+
+        <!-- Telemetry Cards -->
+        <section class="telemetry-grid">
+            <!-- Speed Card -->
+            <div class="card card-speed">
+                <div class="card-header">
+                    <span class="card-icon">⚡</span>
+                    <span class="card-label">Speed</span>
+                </div>
+                <div class="card-value">
+                    <span id="speed-ms" class="value-primary">0.0</span>
+                    <span class="value-unit">m/s</span>
+                </div>
+                <div class="card-secondary">
+                    <span id="speed-kmh">0.0</span> km/h
+                </div>
+            </div>
+
+            <!-- Bearing Card -->
+            <div class="card card-bearing">
+                <div class="card-header">
+                    <span class="card-icon">🧭</span>
+                    <span class="card-label">Bearing</span>
+                </div>
+                <div class="card-value">
+                    <span id="bearing" class="value-primary">---</span>
+                    <span class="value-unit">°</span>
+                </div>
+                <div class="card-secondary" id="bearing-direction">N</div>
+            </div>
+
+            <!-- Acceleration Card -->
+            <div class="card card-accel">
+                <div class="card-header">
+                    <span class="card-icon">📈</span>
+                    <span class="card-label">Acceleration</span>
+                </div>
+                <div class="card-value">
+                    <span id="acceleration" class="value-primary">---</span>
+                    <span class="value-unit">m/s²</span>
+                </div>
+                <div class="card-secondary" id="accel-status">Waiting for sensor...</div>
+            </div>
+        </section>
+
+        <!-- Coordinates -->
+        <section class="coordinates-section">
+            <div class="card card-coords">
+                <div class="card-header">
+                    <span class="card-icon">📍</span>
+                    <span class="card-label">Coordinates</span>
+                </div>
+                <div class="coords-grid">
+                    <div class="coord-row">
+                        <span class="coord-label">LAT</span>
+                        <span id="latitude" class="coord-value">--° --' --" N</span>
+                    </div>
+                    <div class="coord-row">
+                        <span class="coord-label">LNG</span>
+                        <span id="longitude" class="coord-value">--° --' --" E</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Arrow Visualization -->
+        <section class="arrow-section">
+            <div class="arrow-container">
+                <svg id="arrow-svg" viewBox="0 0 200 200" class="arrow-svg">
+                    <!-- Compass Ring -->
+                    <circle cx="100" cy="100" r="90" class="compass-ring" />
+                    <circle cx="100" cy="100" r="85" class="compass-ring-inner" />
+
+                    <!-- Cardinal Directions -->
+                    <text x="100" y="25" class="cardinal-text">N</text>
+                    <text x="180" y="105" class="cardinal-text">E</text>
+                    <text x="100" y="190" class="cardinal-text">S</text>
+                    <text x="20" y="105" class="cardinal-text">W</text>
+
+                    <!-- Tick Marks -->
+                    <g class="tick-marks">
+                        <line x1="100" y1="15" x2="100" y2="25" />
+                        <line x1="185" y1="100" x2="175" y2="100" />
+                        <line x1="100" y1="185" x2="100" y2="175" />
+                        <line x1="15" y1="100" x2="25" y2="100" />
+                    </g>
+
+                    <!-- North Arrow (Blue) -->
+                    <g id="north-arrow" class="arrow-group">
+                        <polygon points="100,30 94,70 100,60 106,70" class="arrow-north" />
+                        <circle cx="100" cy="100" r="8" class="arrow-center" />
+                    </g>
+
+                    <!-- Velocity Arrow (Red) -->
+                    <g id="velocity-arrow" class="arrow-group">
+                        <polygon id="velocity-polygon" points="100,40 94,75 100,65 106,75" class="arrow-velocity" />
+                    </g>
+                </svg>
+
+                <!-- Arrow Legend -->
+                <div class="arrow-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot north"></span>
+                        <span>North</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot velocity"></span>
+                        <span>Velocity</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Braking Alert Indicator -->
+        <div id="brake-indicator" class="brake-indicator hidden">
+            <span>⚠️ BRAKING</span>
+        </div>
+    </main>
+
+    <script src="js/sensors.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

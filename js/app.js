@@ -1,0 +1,326 @@
+/**
+ * Velocitats - Main Application
+ * Orchestrates sensors, UI updates, and safety alerts
+ */
+
+class VelocitatsApp {
+    constructor() {
+        // Modules
+        this.sensors = new SensorManager();
+        this.simulator = new SensorSimulator();
+        this.audio = new AudioEngine();
+
+        // Mode
+        this.isSimulating = false;
+
+        // Wake lock
+        this.wakeLock = null;
+
+        // Thresholds
+        this.SPEED_THRESHOLD = 1.4;    // m/s (~5 km/h) - minimum speed for braking detection
+        this.BRAKE_THRESHOLD = -5.0;   // m/s² - deceleration threshold
+
+        // UI Elements
+        this.elements = {
+            overlay: document.getElementById('permission-overlay'),
+            startBtn: document.getElementById('start-btn'),
+            simulateBtn: document.getElementById('simulate-btn'),
+            dashboard: document.getElementById('dashboard'),
+
+            // Status indicators
+            gpsStatus: document.getElementById('gps-status'),
+            motionStatus: document.getElementById('motion-status'),
+            wakelockStatus: document.getElementById('wakelock-status'),
+
+            // Telemetry
+            speedMs: document.getElementById('speed-ms'),
+            speedKmh: document.getElementById('speed-kmh'),
+            bearing: document.getElementById('bearing'),
+            bearingDirection: document.getElementById('bearing-direction'),
+            acceleration: document.getElementById('acceleration'),
+            accelStatus: document.getElementById('accel-status'),
+            accelCard: document.querySelector('.card-accel'),
+            latitude: document.getElementById('latitude'),
+            longitude: document.getElementById('longitude'),
+
+            // Arrows
+            northArrow: document.getElementById('north-arrow'),
+            velocityArrow: document.getElementById('velocity-arrow'),
+            velocityPolygon: document.getElementById('velocity-polygon'),
+
+            // Brake indicator
+            brakeIndicator: document.getElementById('brake-indicator')
+        };
+
+        // State
+        this.currentSpeed = 0;
+        this.currentBearing = 0;
+        this.currentAzimuth = 0;
+        this.currentAcceleration = 0;
+        this.isBraking = false;
+
+        this.init();
+    }
+
+    /**
+     * Set up event listeners
+     */
+    init() {
+        this.elements.startBtn.addEventListener('click', () => this.start(false));
+        this.elements.simulateBtn.addEventListener('click', () => this.start(true));
+
+        // Handle visibility change for wake lock
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.wakeLock !== null) {
+                this.requestWakeLock();
+            }
+        });
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then((reg) => console.log('Service Worker registered:', reg.scope))
+                .catch((err) => console.error('Service Worker registration failed:', err));
+        }
+    }
+
+    /**
+     * Start the application
+     * @param {boolean} simulate - If true, use simulator instead of real sensors
+     */
+    async start(simulate = false) {
+        this.isSimulating = simulate;
+
+        // Unlock audio (requires user gesture)
+        await this.audio.unlock();
+
+        // Choose data source
+        const dataSource = simulate ? this.simulator : this.sensors;
+
+        // Set up sensor callbacks
+        dataSource.onGpsUpdate = (data) => this.handleGpsUpdate(data);
+        dataSource.onOrientationUpdate = (data) => this.handleOrientationUpdate(data);
+        dataSource.onMotionUpdate = (data) => this.handleMotionUpdate(data);
+
+        if (!simulate) {
+            this.sensors.onError = (sensor, message) => this.handleSensorError(sensor, message);
+        }
+
+        // Initialize sensors/simulator
+        const results = await dataSource.initialize();
+
+        // Update status indicators
+        this.updateStatusIndicator('gps', results.gps);
+        this.updateStatusIndicator('motion', results.motion);
+
+        // Request wake lock
+        await this.requestWakeLock();
+
+        // Show dashboard
+        this.elements.overlay.classList.add('hidden');
+        this.elements.dashboard.classList.remove('hidden');
+
+        if (simulate) {
+            console.log('🎮 Simulation mode active');
+        }
+    }
+
+    /**
+     * Handle GPS updates
+     */
+    handleGpsUpdate(data) {
+        this.currentSpeed = data.speed || 0;
+        this.currentBearing = data.bearing || 0;
+
+        // Update speed display
+        this.elements.speedMs.textContent = this.currentSpeed.toFixed(1);
+        this.elements.speedKmh.textContent = (this.currentSpeed * 3.6).toFixed(1);
+
+        // Update bearing display
+        if (data.bearing !== null && data.bearing !== undefined) {
+            this.elements.bearing.textContent = Math.round(data.bearing);
+            this.elements.bearingDirection.textContent = SensorManager.bearingToCardinal(data.bearing);
+        }
+
+        // Update coordinates
+        this.elements.latitude.textContent = SensorManager.toDMS(data.latitude, true);
+        this.elements.longitude.textContent = SensorManager.toDMS(data.longitude, false);
+
+        // Update velocity arrow
+        this.updateVelocityArrow();
+
+        // Update GPS status
+        this.updateStatusIndicator('gps', true);
+    }
+
+    /**
+     * Handle device orientation updates
+     */
+    handleOrientationUpdate(data) {
+        this.currentAzimuth = data.azimuth;
+
+        // Rotate north arrow to point to magnetic north
+        // When device points north, arrow should point up (0°)
+        // As device rotates clockwise, arrow should rotate counter-clockwise
+        const northRotation = -data.azimuth;
+        this.elements.northArrow.style.transform = `rotate(${northRotation}deg)`;
+
+        // Update velocity arrow based on new orientation
+        this.updateVelocityArrow();
+    }
+
+    /**
+     * Handle device motion updates
+     */
+    handleMotionUpdate(data) {
+        this.currentAcceleration = data.forward;
+
+        // Update acceleration display
+        this.elements.acceleration.textContent = data.magnitude.toFixed(1);
+        this.elements.accelStatus.textContent = this.getAccelDescription(data.forward);
+
+        // Update card styling based on acceleration
+        this.elements.accelCard.classList.remove('braking', 'accelerating');
+        if (data.forward < -2) {
+            this.elements.accelCard.classList.add('braking');
+        } else if (data.forward > 2) {
+            this.elements.accelCard.classList.add('accelerating');
+        }
+
+        // Update motion status
+        this.updateStatusIndicator('motion', true);
+
+        // Check for braking condition
+        this.checkBraking(data.forward);
+    }
+
+    /**
+     * Get human-readable acceleration description
+     */
+    getAccelDescription(forward) {
+        if (forward < -5) return 'Hard braking';
+        if (forward < -2) return 'Braking';
+        if (forward > 5) return 'Hard acceleration';
+        if (forward > 2) return 'Accelerating';
+        return 'Steady';
+    }
+
+    /**
+     * Update velocity arrow position and size
+     */
+    updateVelocityArrow() {
+        // Calculate arrow rotation:
+        // GPS bearing is the direction of travel (0° = North)
+        // We need to show this relative to the device's current orientation
+        const rotation = this.currentBearing - this.currentAzimuth;
+
+        // Scale arrow length based on speed (min 35px, max 70px from center)
+        const minLength = 35;
+        const maxLength = 70;
+        const maxSpeed = 30; // m/s (~108 km/h)
+
+        const speedRatio = Math.min(this.currentSpeed / maxSpeed, 1);
+        const arrowLength = minLength + (maxLength - minLength) * speedRatio;
+
+        // Calculate arrow polygon points
+        // Arrow tip, then the two base corners, then back to meet
+        const tipY = 100 - arrowLength;
+        const baseY = 100 - arrowLength + 35;
+        const midY = 100 - arrowLength + 25;
+
+        // Update polygon points
+        this.elements.velocityPolygon.setAttribute(
+            'points',
+            `100,${tipY} 94,${baseY} 100,${midY} 106,${baseY}`
+        );
+
+        // Apply rotation
+        this.elements.velocityArrow.style.transform = `rotate(${rotation}deg)`;
+    }
+
+    /**
+     * Check braking conditions and trigger alert
+     */
+    checkBraking(forwardAccel) {
+        const isMoving = this.currentSpeed > this.SPEED_THRESHOLD;
+        const isHardBraking = forwardAccel < this.BRAKE_THRESHOLD;
+
+        if (isMoving && isHardBraking) {
+            if (!this.isBraking) {
+                this.isBraking = true;
+                this.audio.playBrakeAlert();
+                this.elements.brakeIndicator.classList.remove('hidden');
+            }
+        } else {
+            if (this.isBraking) {
+                this.isBraking = false;
+                this.elements.brakeIndicator.classList.add('hidden');
+            }
+        }
+    }
+
+    /**
+     * Handle sensor errors
+     */
+    handleSensorError(sensor, message) {
+        console.error(`Sensor error (${sensor}):`, message);
+        this.updateStatusIndicator(sensor, false, true);
+    }
+
+    /**
+     * Update status indicator dot
+     */
+    updateStatusIndicator(sensor, active, error = false) {
+        let element;
+        switch (sensor) {
+            case 'gps':
+                element = this.elements.gpsStatus;
+                break;
+            case 'motion':
+            case 'orientation':
+                element = this.elements.motionStatus;
+                break;
+            case 'wakelock':
+                element = this.elements.wakelockStatus;
+                break;
+            default:
+                return;
+        }
+
+        element.classList.remove('active', 'warning', 'error');
+        if (error) {
+            element.classList.add('error');
+        } else if (active) {
+            element.classList.add('active');
+        }
+    }
+
+    /**
+     * Request screen wake lock
+     */
+    async requestWakeLock() {
+        if (!('wakeLock' in navigator)) {
+            console.warn('Wake Lock API not supported');
+            return;
+        }
+
+        try {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+            this.updateStatusIndicator('wakelock', true);
+
+            this.wakeLock.addEventListener('release', () => {
+                this.updateStatusIndicator('wakelock', false);
+            });
+
+            console.log('Wake Lock acquired');
+        } catch (error) {
+            console.error('Wake Lock failed:', error);
+            this.updateStatusIndicator('wakelock', false, true);
+        }
+    }
+}
+
+// Start the app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new VelocitatsApp();
+});
