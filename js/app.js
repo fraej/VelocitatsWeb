@@ -157,16 +157,24 @@ class VelocitatsApp {
      * Handle device orientation updates
      */
     handleOrientationUpdate(data) {
-        this.currentAzimuth = data.azimuth;
+        // Validate azimuth - must be a finite number
+        if (!isFinite(data.azimuth)) {
+            console.warn('Invalid azimuth received:', data.azimuth);
+            return;
+        }
+
+        // Normalize azimuth to 0-360 range
+        let azimuth = ((data.azimuth % 360) + 360) % 360;
+        this.currentAzimuth = azimuth;
 
         // Rotate north arrow to point to magnetic north
         // When device points north, arrow should point up (0°)
         // As device rotates clockwise, arrow should rotate counter-clockwise
-        const northRotation = -data.azimuth;
+        const northRotation = -azimuth;
 
         // Use SVG transform attribute for reliable rotation on SVG elements
         // Rotate around center point (100, 100) of the SVG viewBox
-        this.elements.northArrow.setAttribute('transform', `rotate(${northRotation}, 100, 100)`);
+        this.elements.northArrow.setAttribute('transform', `rotate(${northRotation} 100 100)`);
 
         // Update velocity arrow based on new orientation
         this.updateVelocityArrow();
@@ -215,7 +223,10 @@ class VelocitatsApp {
         // Calculate arrow rotation:
         // GPS bearing is the direction of travel (0° = North)
         // We need to show this relative to the device's current orientation
-        const rotation = this.currentBearing - this.currentAzimuth;
+        let rotation = this.currentBearing - this.currentAzimuth;
+
+        // Normalize rotation to -180 to 180 range for shortest path
+        rotation = ((rotation % 360) + 360) % 360;
 
         // Scale arrow length based on speed (min 35px, max 70px from center)
         const minLength = 35;
@@ -237,8 +248,8 @@ class VelocitatsApp {
             `100,${tipY} 94,${baseY} 100,${midY} 106,${baseY}`
         );
 
-        // Apply rotation using SVG transform attribute
-        this.elements.velocityArrow.setAttribute('transform', `rotate(${rotation}, 100, 100)`);
+        // Apply rotation using SVG transform attribute (note: spaces, not commas)
+        this.elements.velocityArrow.setAttribute('transform', `rotate(${rotation} 100 100)`);
     }
 
     /**
