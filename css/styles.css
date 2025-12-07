@@ -480,8 +480,10 @@ body::before {
 
 /* Arrow Styles */
 .arrow-group {
-  transition: transform 100ms linear;
-  transform-origin: 100px 100px;
+  /* Use view-box to make transform-origin work in SVG coordinate space */
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  /* 50% of 200x200 viewBox = 100,100 */
 }
 
 .arrow-north {
@@ -492,8 +494,8 @@ body::before {
 .arrow-velocity {
   fill: var(--arrow-velocity);
   filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
-  transition: transform 100ms linear;
-  transform-origin: 100px 100px;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
 }
 
 .arrow-center {
