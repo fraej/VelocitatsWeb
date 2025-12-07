@@ -134,6 +134,8 @@ class SensorManager {
      * Start device orientation tracking (compass)
      */
     startOrientation() {
+        let usingAbsolute = false;
+
         const handleOrientation = (event) => {
             // Get azimuth (compass heading)
             // alpha: rotation around z-axis (0-360)
@@ -141,14 +143,24 @@ class SensorManager {
             let azimuth;
 
             if (event.webkitCompassHeading !== undefined) {
-                // iOS provides compass heading directly
+                // iOS provides compass heading directly (degrees from magnetic north)
                 azimuth = event.webkitCompassHeading;
             } else if (event.alpha !== null) {
-                // Android: alpha is the direction the device is facing
-                // Convert to compass heading (0 = North)
-                if (event.absolute) {
-                    azimuth = 360 - event.alpha;
+                // Android / Desktop:
+                // When using deviceorientationabsolute (event.absolute is true),
+                // alpha represents the compass heading where:
+                //   alpha = 0 means device top points to North
+                //   alpha increases as device rotates counter-clockwise
+                // So compass heading = (360 - alpha) % 360
+                //
+                // When using regular deviceorientation (not absolute),
+                // alpha is relative to the initial orientation and not useful for compass
+                if (event.absolute || usingAbsolute) {
+                    // Absolute orientation: convert alpha to compass heading
+                    azimuth = (360 - event.alpha) % 360;
                 } else {
+                    // Relative orientation - can't determine true north
+                    // Use alpha directly as a fallback (won't be accurate compass)
                     azimuth = event.alpha;
                 }
             } else {
@@ -174,9 +186,12 @@ class SensorManager {
 
         // Try absolute orientation first (more accurate for compass)
         if ('ondeviceorientationabsolute' in window) {
+            usingAbsolute = true;
             window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+            console.log('Using deviceorientationabsolute for compass');
         } else {
             window.addEventListener('deviceorientation', handleOrientation, true);
+            console.log('Using deviceorientation for compass (may not be accurate)');
         }
 
         this.hasOrientationPermission = true;
@@ -186,13 +201,19 @@ class SensorManager {
      * Start device motion tracking (accelerometer)
      */
     startMotion() {
-        window.addEventListener('devicemotion', (event) => {
+        let hasReceivedData = false;
+        let checkTimeout = null;
+
+        const handleMotion = (event) => {
             // Use acceleration excluding gravity for true linear acceleration
             const accel = event.acceleration || event.accelerationIncludingGravity;
 
             if (!accel || (accel.x === null && accel.y === null && accel.z === null)) {
-                return; // No valid data
+                // No valid accelerometer data
+                return;
             }
+
+            hasReceivedData = true;
 
             // Calculate magnitude of acceleration vector
             const magnitude = Math.sqrt(
@@ -216,7 +237,17 @@ class SensorManager {
             if (this.onMotionUpdate) {
                 this.onMotionUpdate(this.lastAcceleration);
             }
-        }, true);
+        };
+
+        window.addEventListener('devicemotion', handleMotion, true);
+
+        // Check if we receive accelerometer data within 2 seconds
+        checkTimeout = setTimeout(() => {
+            if (!hasReceivedData) {
+                console.warn('No accelerometer data received - sensor may not be available');
+                this.handleError('motion', 'Accelerometer not available on this device');
+            }
+        }, 2000);
 
         this.hasMotionPermission = true;
     }

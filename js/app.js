@@ -265,6 +265,12 @@ class VelocitatsApp {
     handleSensorError(sensor, message) {
         console.error(`Sensor error (${sensor}):`, message);
         this.updateStatusIndicator(sensor, false, true);
+
+        // Update UI for specific sensor errors
+        if (sensor === 'motion') {
+            this.elements.acceleration.textContent = '---';
+            this.elements.accelStatus.textContent = 'Not available';
+        }
     }
 
     /**
