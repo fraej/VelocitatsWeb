@@ -16,9 +16,9 @@ class VelocitatsApp {
         // Wake lock
         this.wakeLock = null;
 
-        // Thresholds
-        this.SPEED_THRESHOLD = 1.4;    // m/s (~5 km/h) - minimum speed for braking detection
-        this.BRAKE_THRESHOLD = -5.0;   // m/s² - deceleration threshold
+        // Thresholds (lowered for easier testing)
+        this.SPEED_THRESHOLD = 0.5;    // m/s (~2 km/h) - minimum speed for braking detection
+        this.BRAKE_THRESHOLD = -2.0;   // m/s² - deceleration threshold
 
         // UI Elements
         this.elements = {
@@ -92,7 +92,14 @@ class VelocitatsApp {
         this.isSimulating = simulate;
 
         // Unlock audio (requires user gesture)
-        await this.audio.unlock();
+        const audioUnlocked = await this.audio.unlock();
+
+        // Play a confirmation beep to verify audio is working
+        if (audioUnlocked) {
+            // Short high-pitched beep to confirm audio works
+            this.audio.playBeep(1200, 100, 'sine');
+            console.log('🔊 Audio confirmed working');
+        }
 
         // Choose data source
         const dataSource = simulate ? this.simulator : this.sensors;
