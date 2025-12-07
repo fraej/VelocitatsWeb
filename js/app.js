@@ -172,8 +172,11 @@ class VelocitatsApp {
         // As device rotates clockwise, arrow should rotate counter-clockwise
         const northRotation = -azimuth;
 
-        // Use CSS transform with transform-box: view-box for correct rotation center
-        this.elements.northArrow.style.transform = `rotate(${northRotation}deg)`;
+        // Use anime.js for SVG rotation with proper pivot point
+        anime.set(this.elements.northArrow, {
+            rotate: northRotation,
+            transformOrigin: '100px 100px'  // Center of 200x200 SVG viewBox
+        });
 
         // Update velocity arrow based on new orientation
         this.updateVelocityArrow();
@@ -224,7 +227,7 @@ class VelocitatsApp {
         // We need to show this relative to the device's current orientation
         let rotation = this.currentBearing - this.currentAzimuth;
 
-        // Normalize rotation to -180 to 180 range for shortest path
+        // Normalize rotation to 0-360 range
         rotation = ((rotation % 360) + 360) % 360;
 
         // Scale arrow length based on speed (min 35px, max 70px from center)
@@ -247,8 +250,11 @@ class VelocitatsApp {
             `100,${tipY} 94,${baseY} 100,${midY} 106,${baseY}`
         );
 
-        // Apply rotation using CSS transform with transform-box: view-box
-        this.elements.velocityArrow.style.transform = `rotate(${rotation}deg)`;
+        // Use anime.js for SVG rotation with proper pivot point
+        anime.set(this.elements.velocityArrow, {
+            rotate: rotation,
+            transformOrigin: '100px 100px'  // Center of 200x200 SVG viewBox
+        });
     }
 
     /**
