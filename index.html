@@ -3,187 +3,242 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#6366f1">
     <meta name="description" content="Real-time GPS telemetry with compass and braking alerts">
     <title>Velocitats</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="assets/icon-192.png">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+    <!-- Ionic CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css">
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
-    <!-- Permission Overlay -->
-    <div id="permission-overlay" class="overlay">
-        <div class="overlay-content">
-            <div class="overlay-icon">📍</div>
-            <h1>Velocitats</h1>
-            <p>Real-time GPS telemetry & safety alerts</p>
-            <button id="start-btn" class="btn-primary">
-                <span>Enable Sensors</span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-            </button>
-            <button id="simulate-btn" class="btn-secondary">
-                <span>🎮 Simulate Movement</span>
-            </button>
-            <p class="overlay-hint">Use simulation to test without real sensors</p>
+    <ion-app>
+        <!-- Permission Overlay -->
+        <div id="permission-overlay" class="overlay">
+            <div class="overlay-content">
+                <div class="overlay-icon">📍</div>
+                <h1>Velocitats</h1>
+                <p>Real-time GPS telemetry & safety alerts</p>
+                <ion-button id="start-btn" expand="block" size="large">
+                    <ion-icon name="navigate" slot="start"></ion-icon>
+                    Enable Sensors
+                </ion-button>
+                <ion-button id="simulate-btn" expand="block" fill="outline" class="ion-margin-top">
+                    <ion-icon name="game-controller" slot="start"></ion-icon>
+                    Simulate Movement
+                </ion-button>
+                <p class="overlay-hint">Use simulation to test without real sensors</p>
+            </div>
         </div>
-    </div>
 
-    <!-- Main Dashboard -->
-    <main id="dashboard" class="dashboard hidden">
-        <!-- Header -->
-        <header class="header">
-            <h1 class="logo">Velocitats</h1>
-            <div class="header-right">
-                <div class="status-indicators">
-                    <span id="gps-status" class="status-dot" title="GPS"></span>
-                    <span id="motion-status" class="status-dot" title="Motion"></span>
-                    <span id="wakelock-status" class="status-dot" title="Wake Lock"></span>
-                </div>
-                <button id="settings-btn" class="settings-btn" title="Settings">⚙️</button>
-            </div>
-        </header>
+        <!-- Main Dashboard -->
+        <ion-content id="dashboard" class="hidden ion-padding">
+            <!-- Header -->
+            <ion-header>
+                <ion-toolbar color="primary">
+                    <ion-title>Velocitats</ion-title>
+                    <ion-buttons slot="end">
+                        <div class="status-indicators">
+                            <span id="gps-status" class="status-dot" title="GPS"></span>
+                            <span id="motion-status" class="status-dot" title="Motion"></span>
+                            <span id="wakelock-status" class="status-dot" title="Wake Lock"></span>
+                        </div>
+                        <ion-button id="settings-btn">
+                            <ion-icon name="settings-outline" slot="icon-only"></ion-icon>
+                        </ion-button>
+                    </ion-buttons>
+                </ion-toolbar>
+            </ion-header>
 
-        <!-- Settings Panel -->
-        <section id="settings-panel" class="settings-panel hidden">
-            <div class="settings-content">
-                <h3>Alert Settings</h3>
-                <div class="setting-row">
-                    <label for="speed-threshold">Min Speed (m/s)</label>
-                    <input type="range" id="speed-threshold" min="0" max="5" step="0.1" value="0.5">
-                    <span id="speed-threshold-value" class="setting-value">0.5</span>
-                </div>
-                <div class="setting-row">
-                    <label for="brake-threshold">Brake Sensitivity (m/s²)</label>
-                    <input type="range" id="brake-threshold" min="-10" max="-0.5" step="0.5" value="-2">
-                    <span id="brake-threshold-value" class="setting-value">-2.0</span>
-                </div>
-                <button id="test-sound-btn" class="btn-test">🔊 Test Sound</button>
-            </div>
-        </section>
+            <!-- Settings Panel (Modal) -->
+            <ion-card id="settings-panel" class="hidden">
+                <ion-card-header>
+                    <ion-card-title>Alert Settings</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                    <ion-list>
+                        <ion-item>
+                            <ion-label>Min Speed (m/s)</ion-label>
+                            <ion-range id="speed-threshold" min="0" max="5" step="0.1" value="0.5" pin="true">
+                                <ion-label slot="end" id="speed-threshold-value">0.5</ion-label>
+                            </ion-range>
+                        </ion-item>
+                        <ion-item>
+                            <ion-label>Brake Sensitivity (m/s²)</ion-label>
+                            <ion-range id="brake-threshold" min="-10" max="-0.5" step="0.5" value="-2" pin="true">
+                                <ion-label slot="end" id="brake-threshold-value">-2.0</ion-label>
+                            </ion-range>
+                        </ion-item>
+                    </ion-list>
+                    <ion-button id="test-sound-btn" expand="block" fill="outline">
+                        <ion-icon name="volume-high" slot="start"></ion-icon>
+                        Test Sound
+                    </ion-button>
+                </ion-card-content>
+            </ion-card>
 
-        <!-- Telemetry Cards -->
-        <section class="telemetry-grid">
-            <!-- Speed Card -->
-            <div class="card card-speed">
-                <div class="card-header">
-                    <span class="card-icon">⚡</span>
-                    <span class="card-label">Speed</span>
-                </div>
-                <div class="card-value">
-                    <span id="speed-ms" class="value-primary">0.0</span>
-                    <span class="value-unit">m/s</span>
-                </div>
-                <div class="card-secondary">
-                    <span id="speed-kmh">0.0</span> km/h
-                </div>
-            </div>
+            <!-- Telemetry Cards -->
+            <ion-grid>
+                <ion-row>
+                    <!-- Speed Card -->
+                    <ion-col size="6">
+                        <ion-card class="telemetry-card card-speed">
+                            <ion-card-header>
+                                <ion-card-subtitle>
+                                    <ion-icon name="flash"></ion-icon> Speed
+                                </ion-card-subtitle>
+                            </ion-card-header>
+                            <ion-card-content>
+                                <div class="value-display">
+                                    <span id="speed-ms" class="value-primary">0.0</span>
+                                    <span class="value-unit">m/s</span>
+                                </div>
+                                <div class="value-secondary">
+                                    <span id="speed-kmh">0.0</span> km/h
+                                </div>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
 
-            <!-- Bearing Card -->
-            <div class="card card-bearing">
-                <div class="card-header">
-                    <span class="card-icon">🧭</span>
-                    <span class="card-label">Bearing</span>
-                </div>
-                <div class="card-value">
-                    <span id="bearing" class="value-primary">---</span>
-                    <span class="value-unit">°</span>
-                </div>
-                <div class="card-secondary" id="bearing-direction">N</div>
-            </div>
+                    <!-- Bearing Card -->
+                    <ion-col size="6">
+                        <ion-card class="telemetry-card card-bearing">
+                            <ion-card-header>
+                                <ion-card-subtitle>
+                                    <ion-icon name="compass"></ion-icon> Bearing
+                                </ion-card-subtitle>
+                            </ion-card-header>
+                            <ion-card-content>
+                                <div class="value-display">
+                                    <span id="bearing" class="value-primary">---</span>
+                                    <span class="value-unit">°</span>
+                                </div>
+                                <div class="value-secondary" id="bearing-direction">N</div>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                </ion-row>
 
-            <!-- Acceleration Card -->
-            <div class="card card-accel">
-                <div class="card-header">
-                    <span class="card-icon">📈</span>
-                    <span class="card-label">Acceleration</span>
-                </div>
-                <div class="card-value">
-                    <span id="acceleration" class="value-primary">---</span>
-                    <span class="value-unit">m/s²</span>
-                </div>
-                <div class="card-secondary" id="accel-status">Waiting for sensor...</div>
-            </div>
-        </section>
+                <ion-row>
+                    <!-- Acceleration Card -->
+                    <ion-col size="12">
+                        <ion-card class="telemetry-card card-accel" id="accel-card">
+                            <ion-card-header>
+                                <ion-card-subtitle>
+                                    <ion-icon name="trending-up"></ion-icon> Acceleration
+                                </ion-card-subtitle>
+                            </ion-card-header>
+                            <ion-card-content>
+                                <div class="value-display">
+                                    <span id="acceleration" class="value-primary">---</span>
+                                    <span class="value-unit">m/s²</span>
+                                </div>
+                                <div class="value-secondary" id="accel-status">Waiting for sensor...</div>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                </ion-row>
 
-        <!-- Coordinates -->
-        <section class="coordinates-section">
-            <div class="card card-coords">
-                <div class="card-header">
-                    <span class="card-icon">📍</span>
-                    <span class="card-label">Coordinates</span>
-                </div>
-                <div class="coords-grid">
-                    <div class="coord-row">
-                        <span class="coord-label">LAT</span>
-                        <span id="latitude" class="coord-value">--° --' --" N</span>
+                <ion-row>
+                    <!-- Coordinates Card -->
+                    <ion-col size="12">
+                        <ion-card class="telemetry-card">
+                            <ion-card-header>
+                                <ion-card-subtitle>
+                                    <ion-icon name="location"></ion-icon> Coordinates
+                                </ion-card-subtitle>
+                            </ion-card-header>
+                            <ion-card-content>
+                                <ion-grid class="coords-grid">
+                                    <ion-row>
+                                        <ion-col size="2"><strong>LAT</strong></ion-col>
+                                        <ion-col size="10" id="latitude">--° --' --" N</ion-col>
+                                    </ion-row>
+                                    <ion-row>
+                                        <ion-col size="2"><strong>LNG</strong></ion-col>
+                                        <ion-col size="10" id="longitude">--° --' --" E</ion-col>
+                                    </ion-row>
+                                </ion-grid>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
+
+            <!-- Arrow Visualization -->
+            <div class="arrow-section">
+                <div class="arrow-container">
+                    <svg id="arrow-svg" viewBox="0 0 200 200" class="arrow-svg">
+                        <!-- Compass Ring -->
+                        <circle cx="100" cy="100" r="90" class="compass-ring" />
+                        <circle cx="100" cy="100" r="85" class="compass-ring-inner" />
+
+                        <!-- Cardinal Directions -->
+                        <text x="100" y="25" class="cardinal-text">N</text>
+                        <text x="180" y="105" class="cardinal-text">E</text>
+                        <text x="100" y="190" class="cardinal-text">S</text>
+                        <text x="20" y="105" class="cardinal-text">W</text>
+
+                        <!-- Tick Marks -->
+                        <g class="tick-marks">
+                            <line x1="100" y1="15" x2="100" y2="25" />
+                            <line x1="185" y1="100" x2="175" y2="100" />
+                            <line x1="100" y1="185" x2="100" y2="175" />
+                            <line x1="15" y1="100" x2="25" y2="100" />
+                        </g>
+
+                        <!-- North Arrow (Blue) -->
+                        <g id="north-arrow" class="arrow-group">
+                            <polygon points="100,30 94,70 100,60 106,70" class="arrow-north" />
+                            <circle cx="100" cy="100" r="8" class="arrow-center" />
+                        </g>
+
+                        <!-- Velocity Arrow (Red) -->
+                        <g id="velocity-arrow" class="arrow-group">
+                            <polygon id="velocity-polygon" points="100,40 94,75 100,65 106,75" class="arrow-velocity" />
+                        </g>
+                    </svg>
+
+                    <!-- Arrow Legend -->
+                    <div class="arrow-legend">
+                        <ion-chip outline color="primary">
+                            <ion-icon name="navigate" color="primary"></ion-icon>
+                            <ion-label>North</ion-label>
+                        </ion-chip>
+                        <ion-chip outline color="danger">
+                            <ion-icon name="arrow-up" color="danger"></ion-icon>
+                            <ion-label>Velocity</ion-label>
+                        </ion-chip>
                     </div>
-                    <div class="coord-row">
-                        <span class="coord-label">LNG</span>
-                        <span id="longitude" class="coord-value">--° --' --" E</span>
-                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Arrow Visualization -->
-        <section class="arrow-section">
-            <div class="arrow-container">
-                <svg id="arrow-svg" viewBox="0 0 200 200" class="arrow-svg">
-                    <!-- Compass Ring -->
-                    <circle cx="100" cy="100" r="90" class="compass-ring" />
-                    <circle cx="100" cy="100" r="85" class="compass-ring-inner" />
+            <!-- Braking Alert Toast -->
+            <ion-toast id="brake-toast" message="⚠️ HARD BRAKING DETECTED" position="bottom" color="danger"></ion-toast>
+        </ion-content>
 
-                    <!-- Cardinal Directions -->
-                    <text x="100" y="25" class="cardinal-text">N</text>
-                    <text x="180" y="105" class="cardinal-text">E</text>
-                    <text x="100" y="190" class="cardinal-text">S</text>
-                    <text x="20" y="105" class="cardinal-text">W</text>
-
-                    <!-- Tick Marks -->
-                    <g class="tick-marks">
-                        <line x1="100" y1="15" x2="100" y2="25" />
-                        <line x1="185" y1="100" x2="175" y2="100" />
-                        <line x1="100" y1="185" x2="100" y2="175" />
-                        <line x1="15" y1="100" x2="25" y2="100" />
-                    </g>
-
-                    <!-- North Arrow (Blue) -->
-                    <g id="north-arrow" class="arrow-group">
-                        <polygon points="100,30 94,70 100,60 106,70" class="arrow-north" />
-                        <circle cx="100" cy="100" r="8" class="arrow-center" />
-                    </g>
-
-                    <!-- Velocity Arrow (Red) -->
-                    <g id="velocity-arrow" class="arrow-group">
-                        <polygon id="velocity-polygon" points="100,40 94,75 100,65 106,75" class="arrow-velocity" />
-                    </g>
-                </svg>
-
-                <!-- Arrow Legend -->
-                <div class="arrow-legend">
-                    <div class="legend-item">
-                        <span class="legend-dot north"></span>
-                        <span>North</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot velocity"></span>
-                        <span>Velocity</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Braking Alert Indicator -->
+        <!-- Braking Alert Indicator (visible overlay) -->
         <div id="brake-indicator" class="brake-indicator hidden">
-            <span>⚠️ BRAKING</span>
+            <ion-chip color="danger">
+                <ion-icon name="warning"></ion-icon>
+                <ion-label>BRAKING</ion-label>
+            </ion-chip>
         </div>
-    </main>
+    </ion-app>
 
+    <!-- Ionic JS -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+
+    <!-- App Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
     <script src="js/sensors.js"></script>
     <script src="js/simulator.js"></script>

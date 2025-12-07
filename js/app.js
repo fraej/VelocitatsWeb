@@ -39,7 +39,7 @@ class VelocitatsApp {
             bearingDirection: document.getElementById('bearing-direction'),
             acceleration: document.getElementById('acceleration'),
             accelStatus: document.getElementById('accel-status'),
-            accelCard: document.querySelector('.card-accel'),
+            accelCard: document.getElementById('accel-card'),
             latitude: document.getElementById('latitude'),
             longitude: document.getElementById('longitude'),
 
@@ -90,22 +90,23 @@ class VelocitatsApp {
             this.elements.settingsPanel.classList.toggle('hidden');
         });
 
-        // Speed threshold slider
-        this.elements.speedThresholdInput.addEventListener('input', (e) => {
-            this.SPEED_THRESHOLD = parseFloat(e.target.value);
+        // Speed threshold slider (Ionic ion-range uses ionChange)
+        this.elements.speedThresholdInput.addEventListener('ionChange', (e) => {
+            this.SPEED_THRESHOLD = parseFloat(e.detail.value);
             this.elements.speedThresholdValue.textContent = this.SPEED_THRESHOLD.toFixed(1);
             this.saveSettings();
         });
 
-        // Brake threshold slider
-        this.elements.brakeThresholdInput.addEventListener('input', (e) => {
-            this.BRAKE_THRESHOLD = parseFloat(e.target.value);
+        // Brake threshold slider (Ionic ion-range uses ionChange)
+        this.elements.brakeThresholdInput.addEventListener('ionChange', (e) => {
+            this.BRAKE_THRESHOLD = parseFloat(e.detail.value);
             this.elements.brakeThresholdValue.textContent = this.BRAKE_THRESHOLD.toFixed(1);
             this.saveSettings();
         });
 
-        // Test sound button
-        this.elements.testSoundBtn.addEventListener('click', () => {
+        // Test sound button - unlock audio first then play
+        this.elements.testSoundBtn.addEventListener('click', async () => {
+            await this.audio.unlock();
             this.audio.playBeep(880, 150, 'sine');
         });
 
