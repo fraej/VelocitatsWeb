@@ -290,6 +290,128 @@ body::before {
   box-shadow: 0 0 10px var(--danger);
 }
 
+/* Header Right */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Settings Button */
+.settings-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--accent-primary);
+}
+
+/* Settings Panel */
+.settings-panel {
+  background: var(--gradient-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  animation: slideDown 0.2s ease-out;
+}
+
+.settings-panel.hidden {
+  display: none;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-content h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.setting-row label {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.setting-row input[type="range"] {
+  flex: 2;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-color);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.setting-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.setting-value {
+  min-width: 40px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--accent-primary);
+}
+
+.btn-test {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-test:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
 /* ========================================
    Cards
    ======================================== */

@@ -49,7 +49,16 @@ class VelocitatsApp {
             velocityPolygon: document.getElementById('velocity-polygon'),
 
             // Brake indicator
-            brakeIndicator: document.getElementById('brake-indicator')
+            brakeIndicator: document.getElementById('brake-indicator'),
+
+            // Settings
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsPanel: document.getElementById('settings-panel'),
+            speedThresholdInput: document.getElementById('speed-threshold'),
+            speedThresholdValue: document.getElementById('speed-threshold-value'),
+            brakeThresholdInput: document.getElementById('brake-threshold'),
+            brakeThresholdValue: document.getElementById('brake-threshold-value'),
+            testSoundBtn: document.getElementById('test-sound-btn')
         };
 
         // State
@@ -76,11 +85,71 @@ class VelocitatsApp {
             }
         });
 
+        // Settings panel toggle
+        this.elements.settingsBtn.addEventListener('click', () => {
+            this.elements.settingsPanel.classList.toggle('hidden');
+        });
+
+        // Speed threshold slider
+        this.elements.speedThresholdInput.addEventListener('input', (e) => {
+            this.SPEED_THRESHOLD = parseFloat(e.target.value);
+            this.elements.speedThresholdValue.textContent = this.SPEED_THRESHOLD.toFixed(1);
+            this.saveSettings();
+        });
+
+        // Brake threshold slider
+        this.elements.brakeThresholdInput.addEventListener('input', (e) => {
+            this.BRAKE_THRESHOLD = parseFloat(e.target.value);
+            this.elements.brakeThresholdValue.textContent = this.BRAKE_THRESHOLD.toFixed(1);
+            this.saveSettings();
+        });
+
+        // Test sound button
+        this.elements.testSoundBtn.addEventListener('click', () => {
+            this.audio.playBeep(880, 150, 'sine');
+        });
+
+        // Load saved settings
+        this.loadSettings();
+
         // Register service worker
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
                 .then((reg) => console.log('Service Worker registered:', reg.scope))
                 .catch((err) => console.error('Service Worker registration failed:', err));
+        }
+    }
+
+    /**
+     * Save settings to localStorage
+     */
+    saveSettings() {
+        const settings = {
+            speedThreshold: this.SPEED_THRESHOLD,
+            brakeThreshold: this.BRAKE_THRESHOLD
+        };
+        localStorage.setItem('velocitats-settings', JSON.stringify(settings));
+    }
+
+    /**
+     * Load settings from localStorage
+     */
+    loadSettings() {
+        try {
+            const saved = localStorage.getItem('velocitats-settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                this.SPEED_THRESHOLD = settings.speedThreshold;
+                this.BRAKE_THRESHOLD = settings.brakeThreshold;
+
+                // Update UI
+                this.elements.speedThresholdInput.value = this.SPEED_THRESHOLD;
+                this.elements.speedThresholdValue.textContent = this.SPEED_THRESHOLD.toFixed(1);
+                this.elements.brakeThresholdInput.value = this.BRAKE_THRESHOLD;
+                this.elements.brakeThresholdValue.textContent = this.BRAKE_THRESHOLD.toFixed(1);
+            }
+        } catch (e) {
+            console.error('Failed to load settings:', e);
         }
     }
 
