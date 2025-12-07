@@ -163,7 +163,10 @@ class VelocitatsApp {
         // When device points north, arrow should point up (0°)
         // As device rotates clockwise, arrow should rotate counter-clockwise
         const northRotation = -data.azimuth;
-        this.elements.northArrow.style.transform = `rotate(${northRotation}deg)`;
+
+        // Use SVG transform attribute for reliable rotation on SVG elements
+        // Rotate around center point (100, 100) of the SVG viewBox
+        this.elements.northArrow.setAttribute('transform', `rotate(${northRotation}, 100, 100)`);
 
         // Update velocity arrow based on new orientation
         this.updateVelocityArrow();
@@ -234,8 +237,8 @@ class VelocitatsApp {
             `100,${tipY} 94,${baseY} 100,${midY} 106,${baseY}`
         );
 
-        // Apply rotation
-        this.elements.velocityArrow.style.transform = `rotate(${rotation}deg)`;
+        // Apply rotation using SVG transform attribute
+        this.elements.velocityArrow.setAttribute('transform', `rotate(${rotation}, 100, 100)`);
     }
 
     /**

@@ -33,6 +33,14 @@ class SensorManager {
             motion: false
         };
 
+        // Log available sensor APIs for debugging
+        console.log('=== Sensor API Availability ===');
+        console.log('Geolocation:', 'geolocation' in navigator ? '✓ Available' : '✗ Not available');
+        console.log('DeviceOrientation:', 'ondeviceorientation' in window ? '✓ Available' : '✗ Not available');
+        console.log('DeviceOrientationAbsolute:', 'ondeviceorientationabsolute' in window ? '✓ Available' : '✗ Not available');
+        console.log('DeviceMotion:', 'ondevicemotion' in window ? '✓ Available' : '✗ Not available');
+        console.log('Secure context (HTTPS):', window.isSecureContext ? '✓ Yes' : '✗ No (sensors may be blocked)');
+
         // Request GPS
         try {
             await this.startGps();
@@ -135,6 +143,7 @@ class SensorManager {
      */
     startOrientation() {
         let usingAbsolute = false;
+        let hasReceivedData = false;
 
         const handleOrientation = (event) => {
             // Get azimuth (compass heading)
@@ -167,6 +176,11 @@ class SensorManager {
                 return; // No valid data
             }
 
+            if (!hasReceivedData) {
+                hasReceivedData = true;
+                console.log('Compass data received, azimuth:', azimuth.toFixed(1), '°');
+            }
+
             // Store initial azimuth for velocity arrow calculation
             if (this.initialAzimuth === null) {
                 this.initialAzimuth = azimuth;
@@ -193,6 +207,14 @@ class SensorManager {
             window.addEventListener('deviceorientation', handleOrientation, true);
             console.log('Using deviceorientation for compass (may not be accurate)');
         }
+
+        // Check if we receive orientation data within 2 seconds
+        setTimeout(() => {
+            if (!hasReceivedData) {
+                console.warn('No compass/orientation data received - sensor may not be available');
+                this.handleError('orientation', 'Compass not available on this device');
+            }
+        }, 2000);
 
         this.hasOrientationPermission = true;
     }
