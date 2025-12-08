@@ -181,22 +181,23 @@
                         <circle cx="100" cy="100" r="90" class="compass-ring" />
                         <circle cx="100" cy="100" r="85" class="compass-ring-inner" />
 
-                        <!-- Cardinal Directions -->
-                        <text x="100" y="25" class="cardinal-text">N</text>
-                        <text x="180" y="105" class="cardinal-text">E</text>
-                        <text x="100" y="190" class="cardinal-text">S</text>
-                        <text x="20" y="105" class="cardinal-text">W</text>
-
-                        <!-- Tick Marks -->
-                        <g class="tick-marks">
-                            <line x1="100" y1="15" x2="100" y2="25" />
-                            <line x1="185" y1="100" x2="175" y2="100" />
-                            <line x1="100" y1="185" x2="100" y2="175" />
-                            <line x1="15" y1="100" x2="25" y2="100" />
-                        </g>
-
-                        <!-- North Arrow (Blue) -->
+                        <!-- North Arrow group (rotates with compass) -->
                         <g id="north-arrow" class="arrow-group">
+                            <!-- Cardinal Directions -->
+                            <text x="100" y="25" class="cardinal-text">N</text>
+                            <text x="180" y="105" class="cardinal-text">E</text>
+                            <text x="100" y="190" class="cardinal-text">S</text>
+                            <text x="20" y="105" class="cardinal-text">W</text>
+
+                            <!-- Tick Marks -->
+                            <g class="tick-marks">
+                                <line x1="100" y1="15" x2="100" y2="25" />
+                                <line x1="185" y1="100" x2="175" y2="100" />
+                                <line x1="100" y1="185" x2="100" y2="175" />
+                                <line x1="15" y1="100" x2="25" y2="100" />
+                            </g>
+
+                            <!-- North Needle -->
                             <polygon points="100,30 94,70 100,60 106,70" class="arrow-north" />
                             <circle cx="100" cy="100" r="8" class="arrow-center" />
                         </g>
